@@ -105,23 +105,27 @@ function pickBetterDueDate(date1, date2) {
 }
 
 /**
+ * Generate a normalized key for an item (used for deduplication and tracking)
+ */
+function getItemKey(item, keyField) {
+  const normalizedTitle = normalizeTitle(item[keyField] || '');
+  const normalizedCourse = normalizeCourse(item.course);
+  return `${normalizedTitle}-${normalizedCourse}`;
+}
+
+/**
  * Merge and deduplicate two arrays based on a key field
  * Uses smart normalization to catch duplicates like "Submit HW1" vs "Complete HW1"
  * When merging duplicates, prefers the later due date
  * @param {Array} existing - Existing array from Firestore
  * @param {Array} incoming - New array from the request
  * @param {string} keyField - Field to use for deduplication (e.g., 'task', 'title')
- * @returns {Array} Merged and deduplicated array
+ * @returns {Object} { merged: Array, newItems: Array } - Merged array and list of new items
  */
 function mergeAndDedupe(existing = [], incoming = [], keyField) {
   const seen = new Map();
-
-  // Helper to generate normalized key
-  const getKey = (item) => {
-    const normalizedTitle = normalizeTitle(item[keyField] || '');
-    const normalizedCourse = normalizeCourse(item.course);
-    return `${normalizedTitle}-${normalizedCourse}`;
-  };
+  const existingKeys = new Set();
+  const newItems = [];
 
   // Helper to merge two items, picking better values
   const mergeItems = (existingItem, newItem) => {
@@ -140,20 +144,34 @@ function mergeAndDedupe(existing = [], incoming = [], keyField) {
     return merged;
   };
 
-  // Add existing items first
+  // Add existing items first and track their keys
   existing.forEach(item => {
-    const key = getKey(item);
+    const key = getItemKey(item, keyField);
+    existingKeys.add(key);
     seen.set(key, item);
   });
 
   // Override/add incoming items (incoming takes precedence)
   incoming.forEach(item => {
-    const key = getKey(item);
+    const key = getItemKey(item, keyField);
     const existingItem = seen.get(key) || {};
-    seen.set(key, mergeItems(existingItem, item));
+    const merged = mergeItems(existingItem, item);
+    seen.set(key, merged);
+
+    // Track if this is a new item (wasn't in existing)
+    if (!existingKeys.has(key)) {
+      newItems.push({
+        key,
+        title: item[keyField],
+        course: normalizeCourse(item.course)
+      });
+    }
   });
 
-  return Array.from(seen.values());
+  return {
+    merged: Array.from(seen.values()),
+    newItems
+  };
 }
 
 /**
@@ -225,17 +243,46 @@ exports.submitBriefing = onRequest(
         return name && name !== 'n/a' && name !== 'null' && name !== 'undefined';
       });
 
+      // Merge arrays and track new items
+      const actionItemsResult = mergeAndDedupe(existing.actionItems, briefing.actionItems, 'task');
+      const assignmentsResult = mergeAndDedupe(existing.assignments, briefing.assignments, 'title');
+      const announcementsResult = mergeAndDedupe(existing.announcements, briefing.announcements, 'title');
+      const edPostsResult = mergeAndDedupe(existing.edPosts, briefing.edPosts, 'title');
+      const gradescopeResult = mergeAndDedupe(existing.gradescope, briefing.gradescope, 'assignment');
+
+      // Collect all new items from this submission
+      const newItems = {
+        actionItems: actionItemsResult.newItems,
+        assignments: assignmentsResult.newItems,
+        announcements: announcementsResult.newItems,
+        edPosts: edPostsResult.newItems,
+        gradescope: gradescopeResult.newItems.filter(item => {
+          const name = (item.title || '').trim().toLowerCase();
+          return name && name !== 'n/a' && name !== 'null' && name !== 'undefined';
+        })
+      };
+
+      // Create a set of new item keys for the frontend to identify them
+      const newItemKeys = [
+        ...newItems.assignments.map(i => i.key),
+        ...newItems.actionItems.map(i => i.key),
+        ...newItems.announcements.map(i => i.key),
+        ...newItems.edPosts.map(i => i.key),
+        ...newItems.gradescope.map(i => i.key)
+      ];
+
       // Prepare the document with merged arrays (deduped)
       const document = {
         date: briefing.date,
         summary: briefing.summary || existing.summary || null,
-        actionItems: mergeAndDedupe(existing.actionItems, briefing.actionItems, 'task'),
-        assignments: mergeAndDedupe(existing.assignments, briefing.assignments, 'title'),
-        announcements: mergeAndDedupe(existing.announcements, briefing.announcements, 'title'),
-        edPosts: mergeAndDedupe(existing.edPosts, briefing.edPosts, 'title'),
-        gradescope: filterValidGradescope(
-          mergeAndDedupe(existing.gradescope, briefing.gradescope, 'assignment')
-        ),
+        actionItems: actionItemsResult.merged,
+        assignments: assignmentsResult.merged,
+        announcements: announcementsResult.merged,
+        edPosts: edPostsResult.merged,
+        gradescope: filterValidGradescope(gradescopeResult.merged),
+        // Store the keys of items that were new in the most recent submission
+        newItemKeys: newItemKeys,
+        lastSubmissionAt: admin.firestore.FieldValue.serverTimestamp(),
         createdAt: existing.createdAt || admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       };
@@ -243,10 +290,17 @@ exports.submitBriefing = onRequest(
       // Write merged document to Firestore
       await db.collection("briefings").doc(briefing.date).set(document);
 
+      // Count total new items
+      const totalNewItems = Object.values(newItems).reduce((sum, arr) => sum + arr.length, 0);
+      const isUpdate = existingDoc.exists;
+
       res.status(200).json({
         success: true,
-        message: `Briefing for ${briefing.date} saved successfully`,
-        documentId: briefing.date
+        message: `Briefing for ${briefing.date} ${isUpdate ? 'updated' : 'created'} successfully`,
+        documentId: briefing.date,
+        isUpdate,
+        newItems: totalNewItems > 0 ? newItems : null,
+        newItemsCount: totalNewItems
       });
 
     } catch (error) {
@@ -394,11 +448,11 @@ exports.checkEmails = onSchedule(
         // Merge with existing data
         const document = {
           date: today,
-          actionItems: mergeAndDedupe(existing.actionItems, parsedItems.actionItems, "task"),
-          assignments: mergeAndDedupe(existing.assignments, parsedItems.assignments, "title"),
-          announcements: mergeAndDedupe(existing.announcements, parsedItems.announcements, "title"),
-          edPosts: mergeAndDedupe(existing.edPosts, parsedItems.edPosts, "title"),
-          gradescope: mergeAndDedupe(existing.gradescope, parsedItems.gradescope, "assignment"),
+          actionItems: mergeAndDedupe(existing.actionItems, parsedItems.actionItems, "task").merged,
+          assignments: mergeAndDedupe(existing.assignments, parsedItems.assignments, "title").merged,
+          announcements: mergeAndDedupe(existing.announcements, parsedItems.announcements, "title").merged,
+          edPosts: mergeAndDedupe(existing.edPosts, parsedItems.edPosts, "title").merged,
+          gradescope: mergeAndDedupe(existing.gradescope, parsedItems.gradescope, "assignment").merged,
           createdAt: existing.createdAt || admin.firestore.FieldValue.serverTimestamp(),
           updatedAt: admin.firestore.FieldValue.serverTimestamp()
         };

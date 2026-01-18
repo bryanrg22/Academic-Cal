@@ -97,7 +97,8 @@ export function Dashboard() {
     assignments = [],
     announcements = [],
     edPosts = [],
-    gradescope = []
+    gradescope = [],
+    newItemKeys = []
   } = briefing;
 
   // Combine briefing action items with personal tasks
@@ -165,7 +166,7 @@ export function Dashboard() {
               }
             />
             {nonUrgentActionItems.length > 0 && (
-              <ActionItems items={nonUrgentActionItems} onTaskDeleted={handleTaskAdded} />
+              <ActionItems items={nonUrgentActionItems} onTaskDeleted={handleTaskAdded} newItemKeys={newItemKeys} />
             )}
             <div className={nonUrgentActionItems.length > 0 ? 'mt-4' : ''}>
               <QuickAddTask onTaskAdded={handleTaskAdded} />
@@ -184,7 +185,7 @@ export function Dashboard() {
                   </svg>
                 }
               />
-              <AssignmentList assignments={assignments} />
+              <AssignmentList assignments={assignments} newItemKeys={newItemKeys} />
             </Section>
           )}
 

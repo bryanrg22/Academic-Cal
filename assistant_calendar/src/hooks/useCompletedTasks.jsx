@@ -18,12 +18,17 @@ const STORAGE_KEY = 'completedTasks';
 /**
  * Generate a unique task ID from task properties
  * This ensures the same task gets the same ID across sessions
+ *
+ * NOTE: We intentionally exclude dueDate from the ID because:
+ * 1. Due dates can change during briefing merges (system picks later date)
+ * 2. Including dueDate would orphan checkmarks when dates change
+ * 3. Task + Course is sufficient to uniquely identify an assignment
  */
 export function getTaskId(item) {
-  // Create a unique ID from task properties
-  const base = `${item.task || item.title || ''}-${item.course || ''}-${item.dueDate || ''}`;
-  // Replace characters that aren't valid in Firestore document IDs
-  return base.replace(/[\/\.\#\$\[\]]/g, '_');
+  // Create a unique ID from task + course (not dueDate - it can change)
+  const base = `${item.task || item.title || ''}-${item.course || ''}`;
+  // Normalize and replace characters that aren't valid in Firestore document IDs
+  return base.toLowerCase().replace(/[\/\.\#\$\[\]\s]+/g, '_');
 }
 
 // Context

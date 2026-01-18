@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { isToday, isPast, parseISO, differenceInDays } from 'date-fns';
-import { formatDueDate, sortByUrgency } from '../lib/dateUtils';
+import { formatDueDate, sortByUrgency, isNewItem } from '../lib/dateUtils';
 import { ItemDetailModal } from './ItemDetailModal';
 
 const COURSE_COLORS = {
@@ -80,7 +80,7 @@ function getStatusConfig(dueDate, status) {
   };
 }
 
-export function AssignmentCard({ assignment, onClick }) {
+export function AssignmentCard({ assignment, onClick, isNew = false }) {
   const { title, course, dueDate, status, url } = assignment;
   const courseColor = getCourseColor(course);
   const statusConfig = getStatusConfig(dueDate, status);
@@ -95,13 +95,20 @@ export function AssignmentCard({ assignment, onClick }) {
   return (
     <div
       onClick={handleClick}
-      className="group block rounded-xl bg-slate-800/50 border border-slate-700/50 p-4 transition-all duration-200 hover:bg-slate-800 hover:border-slate-600/50 hover:shadow-lg hover:shadow-slate-900/50 cursor-pointer"
+      className={`group block rounded-xl bg-slate-800/50 border p-4 transition-all duration-200 hover:bg-slate-800 hover:border-slate-600/50 hover:shadow-lg hover:shadow-slate-900/50 cursor-pointer ${isNew ? 'border-amber-500/50 ring-1 ring-amber-500/20' : 'border-slate-700/50'}`}
     >
-      {/* Header with course badge and status */}
+      {/* Header with course badge, new badge, and status */}
       <div className="flex items-center justify-between gap-2 mb-3">
-        <span className={`px-2 py-0.5 text-xs font-medium rounded-md ${courseColor.bg} ${courseColor.border} ${courseColor.text} border`}>
-          {course}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className={`px-2 py-0.5 text-xs font-medium rounded-md ${courseColor.bg} ${courseColor.border} ${courseColor.text} border`}>
+            {course}
+          </span>
+          {isNew && (
+            <span className="px-1.5 py-0.5 text-xs font-semibold rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
+              NEW
+            </span>
+          )}
+        </div>
         <span className={`flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-md ${statusConfig.bg} ${statusConfig.border} ${statusConfig.text} border`}>
           {statusConfig.icon}
           {statusConfig.label}
@@ -135,7 +142,7 @@ export function AssignmentCard({ assignment, onClick }) {
   );
 }
 
-export function AssignmentList({ assignments = [] }) {
+export function AssignmentList({ assignments = [], newItemKeys = [] }) {
   const [selectedAssignment, setSelectedAssignment] = useState(null);
 
   // Sort by urgency (overdue first, then due today, then by date)
@@ -157,6 +164,7 @@ export function AssignmentList({ assignments = [] }) {
             <AssignmentCard
               assignment={assignment}
               onClick={setSelectedAssignment}
+              isNew={isNewItem(assignment, newItemKeys, 'title')}
             />
           </div>
         ))}

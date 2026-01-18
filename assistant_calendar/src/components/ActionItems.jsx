@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
-import { formatActionDueDate, sortByUrgency } from '../lib/dateUtils';
+import { formatActionDueDate, sortByUrgency, isNewItem } from '../lib/dateUtils';
 import { useToast } from './Toast';
 import { useCompletedTasks, getTaskId } from '../hooks/useCompletedTasks';
 import { removePersonalTask } from './QuickAddTask';
@@ -146,7 +146,7 @@ function TaskDetailModal({ item, onClose, onComplete, isCompleted }) {
   );
 }
 
-function ActionItem({ item, index, onComplete, onDelete, onOpenDetail }) {
+function ActionItem({ item, index, onComplete, onDelete, onOpenDetail, isNew = false }) {
   const { isCompleted, toggleTask } = useCompletedTasks();
   const taskId = getTaskId(item);
   const isChecked = isCompleted(taskId);
@@ -180,7 +180,7 @@ function ActionItem({ item, index, onComplete, onDelete, onOpenDetail }) {
   return (
     <div
       onClick={handleClick}
-      className={`group relative flex items-start gap-3 p-4 rounded-xl bg-slate-800/40 border border-slate-700/40 transition-all duration-300 hover:bg-slate-800/60 hover:border-slate-600/50 cursor-pointer ${isChecked ? 'opacity-50' : ''}`}
+      className={`group relative flex items-start gap-3 p-4 rounded-xl bg-slate-800/40 border transition-all duration-300 hover:bg-slate-800/60 hover:border-slate-600/50 cursor-pointer ${isChecked ? 'opacity-50' : ''} ${isNew ? 'border-amber-500/50 ring-1 ring-amber-500/20' : 'border-slate-700/40'}`}
     >
       {/* Custom checkbox */}
       <button
@@ -200,7 +200,7 @@ function ActionItem({ item, index, onComplete, onDelete, onOpenDetail }) {
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
+        <div className="flex items-center gap-2 mb-1 flex-wrap">
           {/* Priority indicator */}
           <span className={`flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-md ${priority.bg} ${priority.border} ${priority.text} border`}>
             <span className={`w-1.5 h-1.5 rounded-full ${priority.dot}`}></span>
@@ -218,6 +218,13 @@ function ActionItem({ item, index, onComplete, onDelete, onOpenDetail }) {
           {item.isPersonal && (
             <span className="px-2 py-0.5 text-xs font-medium rounded-md bg-violet-500/20 text-violet-400 border border-violet-500/40">
               Personal
+            </span>
+          )}
+
+          {/* New badge */}
+          {isNew && (
+            <span className="px-1.5 py-0.5 text-xs font-semibold rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
+              NEW
             </span>
           )}
         </div>
@@ -255,7 +262,7 @@ function ActionItem({ item, index, onComplete, onDelete, onOpenDetail }) {
   );
 }
 
-export function ActionItems({ items = [], excludeUrgent = false, onTaskDeleted }) {
+export function ActionItems({ items = [], excludeUrgent = false, onTaskDeleted, newItemKeys = [] }) {
   const { addToast } = useToast();
   const { isCompleted, toggleTask } = useCompletedTasks();
   const [selectedItem, setSelectedItem] = useState(null);
@@ -318,6 +325,7 @@ export function ActionItems({ items = [], excludeUrgent = false, onTaskDeleted }
               onComplete={handleComplete}
               onDelete={handleDelete}
               onOpenDetail={handleOpenDetail}
+              isNew={isNewItem(item, newItemKeys, 'task')}
             />
           </div>
         ))}

@@ -130,3 +130,63 @@ export function isUrgent(dateString, status) {
   const date = parseISO(dateString);
   return isPast(date) || isToday(date);
 }
+
+/**
+ * Normalize assignment/task titles for generating keys
+ * Must match the backend normalization in functions/index.js
+ */
+export function normalizeTitle(title) {
+  if (!title) return '';
+
+  let normalized = title.trim();
+
+  // Remove [Lab], [Lecture], [Discussion] prefixes
+  normalized = normalized.replace(/^\[(lab|lecture|discussion)\]\s*/i, '');
+
+  // Remove common verb prefixes
+  normalized = normalized.replace(/^(submit|complete|finish|do|start|work on|turn in|upload|hand in|deliver|send|post|read|review|prepare|watch|attend)\s+/i, '');
+
+  // Remove course prefix if present
+  normalized = normalized.replace(/^[A-Z]{2,4}[-\s]?\d{2,4}[A-Z]?\s+/i, '');
+
+  // Remove trailing details
+  normalized = normalized.replace(/\s*\(.*\)\s*$/, '');
+  normalized = normalized.replace(/\s+via\s+.*$/i, '');
+
+  // Normalize homework variations
+  normalized = normalized.replace(/^(homework|hw)\s*(assignment)?\s*0*(\d+)/i, 'hw$3');
+
+  // Normalize lab variations
+  normalized = normalized.replace(/^lab\s*0*(\d+).*$/i, 'lab$1');
+
+  // Normalize problem set variations
+  normalized = normalized.replace(/^(problem\s*set|ps)\s*0*(\d+)/i, 'ps$2');
+
+  // Normalize quiz variations
+  normalized = normalized.replace(/^quiz\s*0*(\d+)/i, 'quiz$1');
+
+  // Normalize whitespace and lowercase
+  normalized = normalized.replace(/\s+/g, ' ').trim().toLowerCase();
+
+  return normalized;
+}
+
+/**
+ * Generate a normalized key for an item (must match backend)
+ * Used to check if an item is in the newItemKeys array
+ */
+export function getItemKey(item, keyField = 'title') {
+  const title = item[keyField] || item.task || item.title || item.assignment || '';
+  const normalizedTitle = normalizeTitle(title);
+  const normalizedCourse = normalizeCourse(item.course);
+  return `${normalizedTitle}-${normalizedCourse}`;
+}
+
+/**
+ * Check if an item is new (was added in the most recent submission)
+ */
+export function isNewItem(item, newItemKeys = [], keyField = 'title') {
+  if (!newItemKeys || newItemKeys.length === 0) return false;
+  const key = getItemKey(item, keyField);
+  return newItemKeys.includes(key);
+}
