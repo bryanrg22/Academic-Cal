@@ -1,0 +1,24 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /briefings/{date} {
+      // Anyone can read briefings (dashboard is public)
+      allow read: if true;
+      // Only Cloud Functions can write (no client writes allowed)
+      allow write: if false;
+    }
+
+    match /completedTasks/{taskId} {
+      // Single-user mode: allow read/write without authentication
+      // This stores task completion status that persists across browser sessions
+      allow read, write: if true;
+    }
+
+    match /meta/{docId} {
+      // Metadata collection for email sync timestamps, etc.
+      // Only Cloud Functions should write, but allow reads
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}
