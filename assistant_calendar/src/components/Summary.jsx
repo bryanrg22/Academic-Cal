@@ -2,6 +2,20 @@ import { parseISO, isPast, isToday, differenceInDays } from 'date-fns';
 import { useCompletedTasks, getTaskId } from '../hooks/useCompletedTasks';
 
 /**
+ * Normalize string for comparison to detect duplicates
+ */
+function normalizeForCompare(str) {
+  if (!str) return '';
+  let normalized = str.toLowerCase().replace(/\s+/g, '');
+  // Remove verb prefixes
+  normalized = normalized.replace(/^(complete|submit|finish|turnin|upload|handin|do|start|workon)/, '');
+  // Normalize assignment type prefixes
+  normalized = normalized.replace(/^(homework)(\d+)/, 'hw$2');
+  normalized = normalized.replace(/^(problemset)(\d+)/, 'ps$2');
+  return normalized;
+}
+
+/**
  * Calculate summary stats from briefing data
  * @param {Function} isCompleted - Function to check if a task is completed
  */
@@ -20,13 +34,20 @@ function calculateStats(assignments, actionItems, gradescope, isCompleted) {
     byCourse: {}
   };
 
-  // Process assignments
+  // Track seen items to avoid double-counting overdue/dueToday/dueSoon
+  const seen = new Set();
+
+  // Process assignments first
   assignments.forEach(a => {
     const course = a.course || 'Unknown';
     if (!stats.byCourse[course]) {
       stats.byCourse[course] = { assignments: 0, overdue: 0, dueToday: 0, dueSoon: 0, submitted: 0, actionItems: 0, completedActions: 0, graded: [] };
     }
     stats.byCourse[course].assignments++;
+
+    // Generate key to track this item
+    const key = `${normalizeForCompare(a.title)}-${normalizeForCompare(course)}`;
+    seen.add(key);
 
     if (a.status === 'submitted') {
       stats.total.submitted++;
@@ -58,6 +79,11 @@ function calculateStats(assignments, actionItems, gradescope, isCompleted) {
     const taskId = getTaskId(item);
     const completed = isCompleted(taskId);
 
+    // Generate key to check for duplicates
+    const key = `${normalizeForCompare(item.task)}-${normalizeForCompare(course)}`;
+    const alreadySeen = seen.has(key);
+    seen.add(key);
+
     if (completed) {
       stats.total.completedActions++;
       stats.byCourse[course].completedActions++;
@@ -65,8 +91,8 @@ function calculateStats(assignments, actionItems, gradescope, isCompleted) {
       stats.total.pendingTasks++;
       stats.byCourse[course].actionItems++;
 
-      // Include uncompleted action items in due today/overdue counts
-      if (item.dueDate) {
+      // Only count overdue/dueToday/dueSoon if not already counted via assignments
+      if (item.dueDate && !alreadySeen) {
         const date = parseISO(item.dueDate);
         if (isPast(date) && !isToday(date)) {
           stats.total.overdue++;
