@@ -7,7 +7,7 @@ A personal academic dashboard that aggregates course information from Brightspac
 - **Daily Briefings** - View assignments, announcements, and action items for each day
 - **Multi-source Aggregation** - Data from Brightspace, Gradescope, Ed Discussion, and manual input
 - **Task Tracking** - Check off completed tasks (persisted to Firestore)
-- **Email Polling** - Automatic updates from school email notifications (every 15 min)
+- **Email Polling** - Automatic updates from school email notifications (hourly)
 - **Smart Deduplication** - Same assignment from multiple sources merged automatically
 - **Calendar Views** - Weekly and monthly calendar with assignment deadlines
 - **History** - Browse past briefings by date
@@ -23,7 +23,7 @@ A personal academic dashboard that aggregates course information from Brightspac
 ┌─────────────────────┐     ┌──────────────────┐              │
 │      Gmail          │────▶│ Firebase Function│──────────────┘
 │ (Brightspace, Ed,   │     │   checkEmails    │
-│  Gradescope emails) │     │  (every 15 min)  │
+│  Gradescope emails) │     │  (hourly)  │
 └─────────────────────┘     └──────────────────┘
                                                               │
                                                               ▼
@@ -141,7 +141,7 @@ firebase functions:secrets:set GMAIL_REFRESH_TOKEN
 firebase deploy --only functions
 ```
 
-The `checkEmails` function will now run every 15 minutes and parse emails from:
+The `checkEmails` function will now run every hour and parse emails from:
 
 | Source | Email Pattern | Extracts |
 |--------|--------------|----------|
