@@ -425,6 +425,29 @@ When you submit a briefing for a date that already has data:
 - Duplicates are detected by `task` + `course` (action items), `title` + `course` (assignments), etc.
 - New items are added, existing items are updated
 
+### Mark As Seen
+
+Clears the "new" badge from items after viewing. Called automatically by the frontend after 5 seconds.
+
+```
+POST https://us-central1-academic-calendar-e63b5.cloudfunctions.net/markAsSeen
+```
+
+**Body:**
+```json
+{
+  "date": "YYYY-MM-DD"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Marked items as seen for 2026-01-17"
+}
+```
+
 ---
 
 ## Data Schema
