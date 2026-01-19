@@ -148,6 +148,7 @@ The `checkEmails` function will now run every hour and parse emails from:
 | Brightspace | `*@mail.brightspace.*.edu` | Announcements, assignments, grades |
 | Ed Discussion | `*@edstem.org` | Posts, staff replies, pinned content |
 | Gradescope | `*@gradescope.com` | Submissions, grades, scores |
+| SI (MATH-226) | `suryadi@usc.edu` | Supplemental Instruction announcements |
 
 ---
 
