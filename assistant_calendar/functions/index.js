@@ -312,7 +312,7 @@ exports.submitBriefing = onRequest(
 
 /**
  * Scheduled function to check Gmail for school-related emails
- * Runs every 15 minutes and parses emails from Canvas, Gradescope, and Ed Discussion
+ * Runs every hour and parses emails from Canvas, Gradescope, and Ed Discussion
  *
  * Required secrets:
  * - GMAIL_CLIENT_ID: OAuth client ID from Google Cloud Console
@@ -321,7 +321,7 @@ exports.submitBriefing = onRequest(
  */
 exports.checkEmails = onSchedule(
   {
-    schedule: "every 15 minutes",
+    schedule: "every 1 hours",
     secrets: [GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN],
     timeZone: "America/Los_Angeles",
     retryCount: 1
