@@ -312,6 +312,54 @@ exports.submitBriefing = onRequest(
 );
 
 /**
+ * HTTP endpoint to mark items as seen (clears newItemKeys)
+ * Called by frontend after user views the dashboard
+ */
+exports.markAsSeen = onRequest(
+  {
+    cors: true
+  },
+  async (req, res) => {
+    if (req.method !== "POST") {
+      res.status(405).json({ error: "Method not allowed" });
+      return;
+    }
+
+    try {
+      const { date } = req.body;
+
+      if (!date) {
+        res.status(400).json({ error: "Missing required field: date" });
+        return;
+      }
+
+      // Clear newItemKeys for this date
+      const docRef = db.collection("briefings").doc(date);
+      const doc = await docRef.get();
+
+      if (!doc.exists) {
+        res.status(404).json({ error: "Briefing not found" });
+        return;
+      }
+
+      await docRef.update({
+        newItemKeys: [],
+        lastSeenAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+
+      res.status(200).json({
+        success: true,
+        message: `Marked items as seen for ${date}`
+      });
+
+    } catch (error) {
+      console.error("Error marking as seen:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  }
+);
+
+/**
  * Scheduled function to check Gmail for school-related emails
  * Runs every hour and parses emails from Canvas, Gradescope, and Ed Discussion
  *

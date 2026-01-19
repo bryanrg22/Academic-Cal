@@ -51,6 +51,25 @@ export function Dashboard() {
     setPersonalTasks(getPersonalTasks());
   }, []);
 
+  // Mark items as seen after 5 seconds of viewing
+  useEffect(() => {
+    if (!briefing?.date || !briefing?.newItemKeys?.length) return;
+
+    const timer = setTimeout(async () => {
+      try {
+        await fetch('https://us-central1-academic-calendar-e63b5.cloudfunctions.net/markAsSeen', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ date: briefing.date })
+        });
+      } catch (err) {
+        console.error('Failed to mark as seen:', err);
+      }
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [briefing?.date, briefing?.newItemKeys?.length]);
+
   const handleTaskAdded = () => {
     setPersonalTasks(getPersonalTasks());
   };
