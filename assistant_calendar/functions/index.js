@@ -34,6 +34,10 @@ function normalizeCourse(course) {
   // Handle "MATH226" -> "MATH-226"
   normalized = normalized.replace(/([A-Z]+)(\d)/, '$1-$2');
 
+  // Expand common course code abbreviations
+  // "CS-104" -> "CSCI-104" (Ed emails use "CS104" but course is "CSCI-104")
+  normalized = normalized.replace(/^CS-(\d)/, 'CSCI-$1');
+
   return normalized.replace(/-+$/, '');
 }
 
