@@ -1,26 +1,51 @@
 import { format, isToday, isPast, parseISO } from 'date-fns';
 
 export function UrgentBanner({ assignments = [], actionItems = [] }) {
-  // Find overdue and due-today items
-  const urgentItems = [];
+  // Helper to normalize title for comparison
+  const normalizeForCompare = (str) => {
+    if (!str) return '';
+    return str.toLowerCase().replace(/\s+/g, '').replace(/^(hw|homework|lab|quiz|ps)/i, m => m.toLowerCase());
+  };
 
+  // Find overdue and due-today items (with deduplication)
+  const urgentItems = [];
+  const seen = new Set();
+
+  // Add assignments first (they have more details like URL)
   assignments.forEach(a => {
     if (!a.dueDate || a.status === 'submitted') return;
     const dueDate = parseISO(a.dueDate);
+    const key = `${normalizeForCompare(a.title)}-${normalizeForCompare(a.course)}`;
+
     if (isPast(dueDate) && !isToday(dueDate)) {
-      urgentItems.push({ ...a, urgency: 'overdue', type: 'assignment' });
+      if (!seen.has(key)) {
+        seen.add(key);
+        urgentItems.push({ ...a, urgency: 'overdue', type: 'assignment' });
+      }
     } else if (isToday(dueDate)) {
-      urgentItems.push({ ...a, urgency: 'today', type: 'assignment' });
+      if (!seen.has(key)) {
+        seen.add(key);
+        urgentItems.push({ ...a, urgency: 'today', type: 'assignment' });
+      }
     }
   });
 
+  // Add action items only if not already in assignments
   actionItems.forEach(item => {
     if (!item.dueDate) return;
     const dueDate = parseISO(item.dueDate);
+    const key = `${normalizeForCompare(item.task)}-${normalizeForCompare(item.course)}`;
+
     if (isPast(dueDate) && !isToday(dueDate)) {
-      urgentItems.push({ ...item, urgency: 'overdue', type: 'action' });
+      if (!seen.has(key)) {
+        seen.add(key);
+        urgentItems.push({ ...item, urgency: 'overdue', type: 'action' });
+      }
     } else if (isToday(dueDate)) {
-      urgentItems.push({ ...item, urgency: 'today', type: 'action' });
+      if (!seen.has(key)) {
+        seen.add(key);
+        urgentItems.push({ ...item, urgency: 'today', type: 'action' });
+      }
     }
   });
 

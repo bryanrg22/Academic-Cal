@@ -419,38 +419,51 @@ export function WeeklyCalendar({ assignments = [], actionItems = [], gradescope 
     : format(currentMonthDate, 'MMMM yyyy');
   const weekRange = `${format(days[0], 'MMM d')} - ${format(days[6], 'MMM d')}`;
 
-  // Combine all items and group by date
+  // Helper to normalize title for comparison
+  const normalizeForCompare = (str) => {
+    if (!str) return '';
+    return str.toLowerCase().replace(/\s+/g, '').replace(/^(hw|homework|lab|quiz|ps)/i, m => m.toLowerCase());
+  };
+
+  // Combine all items and group by date (with deduplication)
   const getItemsForDate = (date) => {
     const items = [];
+    const seen = new Set();
 
-    // Add assignments
+    // Add assignments first (they have more details like URL)
     assignments.forEach(a => {
       if (!a.dueDate) return;
       const dueDate = parseISO(a.dueDate);
       if (isSameDay(dueDate, date)) {
-        items.push({ type: 'assignment', data: a });
+        const key = `${normalizeForCompare(a.title)}-${normalizeForCompare(a.course)}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          items.push({ type: 'assignment', data: a });
+        }
       }
     });
 
-    // Add action items
+    // Add action items only if not already in assignments
     actionItems.forEach(item => {
       if (!item.dueDate) return;
       const dueDate = parseISO(item.dueDate);
       if (isSameDay(dueDate, date)) {
-        items.push({ type: 'task', data: item });
+        const key = `${normalizeForCompare(item.task)}-${normalizeForCompare(item.course)}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          items.push({ type: 'task', data: item });
+        }
       }
     });
 
-    // Add gradescope submissions (that aren't already in assignments)
+    // Add gradescope submissions (that aren't already added)
     gradescope.forEach(g => {
-      if (!g.dueDate || g.status === 'graded') return; // Skip graded or no due date
+      if (!g.dueDate || g.status === 'graded') return;
       const dueDate = parseISO(g.dueDate);
       if (isSameDay(dueDate, date)) {
-        // Check if already in assignments
-        const exists = assignments.some(a =>
-          a.title === g.assignment && a.course === g.course
-        );
-        if (!exists) {
+        const key = `${normalizeForCompare(g.assignment)}-${normalizeForCompare(g.course)}`;
+        if (!seen.has(key)) {
+          seen.add(key);
           items.push({ type: 'gradescope', data: { ...g, title: g.assignment } });
         }
       }
