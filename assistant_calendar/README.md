@@ -159,7 +159,7 @@ Use this prompt with a browser extension to parse your course pages and generate
 You are my academic assistant. Analyze my course pages and create a daily briefing.
 
 ## My Courses
-- CSCI-104 (normalize to CS-104)
+- CSCI-104
 - PHYS-151
 - MATH-226
 - TAC-368
@@ -213,7 +213,7 @@ The same assignment appears on multiple platforms with different names. You MUST
 - "via" clauses: "HW1 via GitHub Classroom" → "HW1"
 
 **Examples:**
-- "Complete CS104 HW1 via GitHub Classroom" → **"HW1"** with course **"CS-104"**
+- "Complete CSCI104 HW1 via GitHub Classroom" → **"HW1"** with course **"CSCI-104"**
 - "[Lab] lab01 install dart" → **"Lab 1"** with course **"TAC-368"**
 - "Submit Homework 01" → **"HW1"**
 
@@ -223,7 +223,7 @@ Use format **DEPT-###** (uppercase, hyphen, numbers). These are my specific cour
 
 | Input variations | Output |
 |------------------|--------|
-| "CSCI-104", "CSCI 104", "CS104", "CS-104" | **CS-104** |
+| "CSCI-104", "CSCI 104", "CS104", "CSCI-104" | **CSCI-104** |
 | "Math 226", "MATH226" | **MATH-226** |
 | "PHYS-151", "Physics 151" | **PHYS-151** |
 | "TAC-368", "TAC 368" | **TAC-368** |
@@ -268,7 +268,7 @@ Provide the briefing in chat with:
   "summary": {
     "overall": "Brief 2-3 sentence overview. Mention key deadlines, urgent items, overall workload.",
     "courses": {
-      "CS-104": "1-2 sentence summary for this course",
+      "CSCI-104": "1-2 sentence summary for this course",
       "PHYS-151": "1-2 sentence summary for this course"
     }
   },
@@ -277,7 +277,7 @@ Provide the briefing in chat with:
     {
       "task": "HW3",
       "priority": 1,
-      "course": "CS-104",
+      "course": "CSCI-104",
       "dueDate": "YYYY-MM-DD"
     }
   ],
@@ -285,7 +285,7 @@ Provide the briefing in chat with:
   "assignments": [
     {
       "title": "HW3",
-      "course": "CS-104",
+      "course": "CSCI-104",
       "dueDate": "YYYY-MM-DD",
       "status": "pending",
       "url": "https://..."
@@ -303,7 +303,7 @@ Provide the briefing in chat with:
 
   "edPosts": [
     {
-      "course": "CS-104",
+      "course": "CSCI-104",
       "title": "HW1 Coding Portion Available",
       "isStaff": true,
       "isPinned": false,
@@ -314,7 +314,7 @@ Provide the briefing in chat with:
   "gradescope": [
     {
       "assignment": "HW2",
-      "course": "CS-104",
+      "course": "CSCI-104",
       "status": "graded",
       "score": "95/100"
     }
@@ -360,21 +360,21 @@ X-API-Key: <your-api-key>
   "summary": {
     "overall": "Brief 2-3 sentence overview",
     "courses": {
-      "CS-104": "Course-specific summary"
+      "CSCI-104": "Course-specific summary"
     }
   },
   "actionItems": [
     {
       "task": "HW3",
       "priority": 1,
-      "course": "CS-104",
+      "course": "CSCI-104",
       "dueDate": "YYYY-MM-DD"
     }
   ],
   "assignments": [
     {
       "title": "HW3",
-      "course": "CS-104",
+      "course": "CSCI-104",
       "dueDate": "YYYY-MM-DD",
       "status": "pending",
       "url": "https://..."
@@ -390,7 +390,7 @@ X-API-Key: <your-api-key>
   ],
   "edPosts": [
     {
-      "course": "CS-104",
+      "course": "CSCI-104",
       "title": "HW1 Coding Portion Available",
       "isStaff": true,
       "isPinned": false,
@@ -400,7 +400,7 @@ X-API-Key: <your-api-key>
   "gradescope": [
     {
       "assignment": "HW2",
-      "course": "CS-104",
+      "course": "CSCI-104",
       "status": "graded",
       "score": "95/100"
     }

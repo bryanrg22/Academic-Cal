@@ -18,9 +18,6 @@ export function normalizeCourse(course) {
   // Handle cases like "MATH226" -> "MATH-226" (letter followed by number)
   normalized = normalized.replace(/([A-Z]+)(\d)/, '$1-$2');
 
-  // Handle CSCI-104 → CS-104
-  normalized = normalized.replace(/^CSCI-/, 'CS-');
-
   // Remove trailing hyphen if any
   normalized = normalized.replace(/-+$/, '');
 

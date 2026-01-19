@@ -34,9 +34,6 @@ function normalizeCourse(course) {
   // Handle "MATH226" -> "MATH-226"
   normalized = normalized.replace(/([A-Z]+)(\d)/, '$1-$2');
 
-  // Handle common variations: CSCI-104 -> CS-104
-  normalized = normalized.replace(/^CSCI-/, 'CS-');
-
   return normalized.replace(/-+$/, '');
 }
 
