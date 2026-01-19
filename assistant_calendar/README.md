@@ -23,7 +23,7 @@ A personal academic dashboard that aggregates course information from Brightspac
 ┌─────────────────────┐     ┌──────────────────┐              │
 │      Gmail          │────▶│ Firebase Function│──────────────┘
 │ (Brightspace, Ed,   │     │   checkEmails    │
-│  Gradescope emails) │     │  (hourly)  │
+│  Gradescope emails) │     │  (hourly)        │
 └─────────────────────┘     └──────────────────┘
                                                               │
                                                               ▼
