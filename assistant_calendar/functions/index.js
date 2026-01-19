@@ -380,7 +380,7 @@ exports.checkEmails = onSchedule(
           if (parsed) {
             console.log(`Parsed email: ${parsed.type} from ${parsed.source}`);
 
-            // Route to appropriate category
+            // Route to appropriate category (add source: 'gmail' to all items)
             switch (parsed.type) {
               case "assignment":
                 parsedItems.assignments.push({
@@ -388,14 +388,16 @@ exports.checkEmails = onSchedule(
                   course: parsed.course,
                   dueDate: parsed.dueDate,
                   status: "pending",
-                  url: parsed.url
+                  url: parsed.url,
+                  source: "gmail"
                 });
                 // Also add as action item
                 parsedItems.actionItems.push({
                   task: `Complete ${parsed.title}`,
                   priority: 2,
                   course: parsed.course,
-                  dueDate: parsed.dueDate
+                  dueDate: parsed.dueDate,
+                  source: "gmail"
                 });
                 break;
 
@@ -404,7 +406,8 @@ exports.checkEmails = onSchedule(
                   course: parsed.course,
                   title: parsed.title,
                   content: parsed.content || "",
-                  date: today
+                  date: today,
+                  source: "gmail"
                 });
                 break;
 
@@ -414,7 +417,8 @@ exports.checkEmails = onSchedule(
                   title: parsed.title,
                   isStaff: parsed.isStaff || false,
                   isPinned: parsed.isPinned || false,
-                  url: parsed.url
+                  url: parsed.url,
+                  source: "gmail"
                 });
                 break;
 
@@ -423,7 +427,8 @@ exports.checkEmails = onSchedule(
                   assignment: parsed.assignment,
                   course: parsed.course,
                   status: parsed.status,
-                  score: parsed.score
+                  score: parsed.score,
+                  source: "gmail"
                 });
                 break;
             }
@@ -445,20 +450,43 @@ exports.checkEmails = onSchedule(
         const existingDoc = await db.collection("briefings").doc(today).get();
         const existing = existingDoc.exists ? existingDoc.data() : {};
 
+        // Merge arrays and track new items (same as submitBriefing)
+        const actionItemsResult = mergeAndDedupe(existing.actionItems, parsedItems.actionItems, "task");
+        const assignmentsResult = mergeAndDedupe(existing.assignments, parsedItems.assignments, "title");
+        const announcementsResult = mergeAndDedupe(existing.announcements, parsedItems.announcements, "title");
+        const edPostsResult = mergeAndDedupe(existing.edPosts, parsedItems.edPosts, "title");
+        const gradescopeResult = mergeAndDedupe(existing.gradescope, parsedItems.gradescope, "assignment");
+
+        // Collect new item keys from Gmail
+        const gmailNewItemKeys = [
+          ...assignmentsResult.newItems.map(i => i.key),
+          ...actionItemsResult.newItems.map(i => i.key),
+          ...announcementsResult.newItems.map(i => i.key),
+          ...edPostsResult.newItems.map(i => i.key),
+          ...gradescopeResult.newItems.map(i => i.key)
+        ];
+
+        // Combine with existing newItemKeys (keep both manual and gmail new items)
+        const existingNewItemKeys = existing.newItemKeys || [];
+        const combinedNewItemKeys = [...new Set([...existingNewItemKeys, ...gmailNewItemKeys])];
+
         // Merge with existing data
         const document = {
           date: today,
-          actionItems: mergeAndDedupe(existing.actionItems, parsedItems.actionItems, "task").merged,
-          assignments: mergeAndDedupe(existing.assignments, parsedItems.assignments, "title").merged,
-          announcements: mergeAndDedupe(existing.announcements, parsedItems.announcements, "title").merged,
-          edPosts: mergeAndDedupe(existing.edPosts, parsedItems.edPosts, "title").merged,
-          gradescope: mergeAndDedupe(existing.gradescope, parsedItems.gradescope, "assignment").merged,
+          summary: existing.summary || null,
+          actionItems: actionItemsResult.merged,
+          assignments: assignmentsResult.merged,
+          announcements: announcementsResult.merged,
+          edPosts: edPostsResult.merged,
+          gradescope: gradescopeResult.merged,
+          newItemKeys: combinedNewItemKeys,
+          lastEmailSyncAt: admin.firestore.FieldValue.serverTimestamp(),
           createdAt: existing.createdAt || admin.firestore.FieldValue.serverTimestamp(),
           updatedAt: admin.firestore.FieldValue.serverTimestamp()
         };
 
         await db.collection("briefings").doc(today).set(document);
-        console.log(`Updated briefing for ${today} with ${emails.length} email items`);
+        console.log(`Updated briefing for ${today} with ${emails.length} email items (${gmailNewItemKeys.length} new)`);
       }
 
       // Update last check timestamp

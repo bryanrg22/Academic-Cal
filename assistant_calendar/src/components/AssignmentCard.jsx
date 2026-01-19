@@ -81,9 +81,10 @@ function getStatusConfig(dueDate, status) {
 }
 
 export function AssignmentCard({ assignment, onClick, isNew = false }) {
-  const { title, course, dueDate, status, url } = assignment;
+  const { title, course, dueDate, status, url, source } = assignment;
   const courseColor = getCourseColor(course);
   const statusConfig = getStatusConfig(dueDate, status);
+  const isFromGmail = source === 'gmail';
 
   const handleClick = (e) => {
     e.preventDefault();
@@ -97,15 +98,23 @@ export function AssignmentCard({ assignment, onClick, isNew = false }) {
       onClick={handleClick}
       className={`group block rounded-xl bg-slate-800/50 border p-4 transition-all duration-200 hover:bg-slate-800 hover:border-slate-600/50 hover:shadow-lg hover:shadow-slate-900/50 cursor-pointer ${isNew ? 'border-amber-500/50 ring-1 ring-amber-500/20' : 'border-slate-700/50'}`}
     >
-      {/* Header with course badge, new badge, and status */}
+      {/* Header with course badge, new badge, gmail badge, and status */}
       <div className="flex items-center justify-between gap-2 mb-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className={`px-2 py-0.5 text-xs font-medium rounded-md ${courseColor.bg} ${courseColor.border} ${courseColor.text} border`}>
             {course}
           </span>
           {isNew && (
             <span className="px-1.5 py-0.5 text-xs font-semibold rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
               NEW
+            </span>
+          )}
+          {isFromGmail && (
+            <span className="px-1.5 py-0.5 text-xs font-medium rounded bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center gap-1">
+              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z"/>
+              </svg>
+              Gmail
             </span>
           )}
         </div>

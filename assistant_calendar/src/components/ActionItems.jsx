@@ -62,6 +62,14 @@ function TaskDetailModal({ item, onClose, onComplete, isCompleted }) {
                   Personal
                 </span>
               )}
+              {item.source === 'gmail' && (
+                <span className="px-1.5 py-0.5 text-xs font-medium rounded bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center gap-1">
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z"/>
+                  </svg>
+                  Gmail
+                </span>
+              )}
             </div>
             <h3 className={`text-lg font-medium text-slate-100 ${isCompleted ? 'line-through opacity-60' : ''}`}>
               {item.task}
@@ -151,6 +159,7 @@ function ActionItem({ item, index, onComplete, onDelete, onOpenDetail, isNew = f
   const taskId = getTaskId(item);
   const isChecked = isCompleted(taskId);
   const priority = PRIORITY_CONFIG[item.priority] || PRIORITY_CONFIG[3];
+  const isFromGmail = item.source === 'gmail';
 
   const handleToggle = (e) => {
     e.stopPropagation();
@@ -225,6 +234,16 @@ function ActionItem({ item, index, onComplete, onDelete, onOpenDetail, isNew = f
           {isNew && (
             <span className="px-1.5 py-0.5 text-xs font-semibold rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
               NEW
+            </span>
+          )}
+
+          {/* Gmail source badge */}
+          {isFromGmail && (
+            <span className="px-1.5 py-0.5 text-xs font-medium rounded bg-rose-500/20 text-rose-400 border border-rose-500/30 flex items-center gap-1">
+              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.455 4.64 12 9.548l6.545-4.91 1.528-1.145C21.69 2.28 24 3.434 24 5.457z"/>
+              </svg>
+              Gmail
             </span>
           )}
         </div>
