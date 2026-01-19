@@ -38,8 +38,8 @@ const url = require('url');
 // YOUR CREDENTIALS (from Google Cloud Console)
 // Replace these with your own OAuth credentials
 // ============================================
-const CLIENT_ID = 'YOUR_CLIENT_ID.apps.googleusercontent.com';
-const CLIENT_SECRET = 'YOUR_CLIENT_SECRET';
+const CLIENT_ID = process.env.GMAIL_CLIENT_ID || 'YOUR_CLIENT_ID.apps.googleusercontent.com';
+const CLIENT_SECRET = process.env.GMAIL_CLIENT_SECRET || 'YOUR_CLIENT_SECRET';
 // ============================================
 
 const REDIRECT_URI = 'http://localhost:3000/callback';

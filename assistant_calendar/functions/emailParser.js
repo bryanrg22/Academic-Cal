@@ -28,6 +28,12 @@ const EMAIL_PATTERNS = {
     subjectPatterns: {
       post: /./i  // Match all Ed emails as posts
     }
+  },
+  // Supplemental Instruction for MATH-226
+  si: {
+    from: /suryadi@usc\.edu/i,
+    course: 'MATH-226',
+    label: 'SI'
   }
 };
 
@@ -52,8 +58,8 @@ async function getGmailClient(clientId, clientSecret, refreshToken) {
  * @returns {array} Array of message objects with id and threadId
  */
 async function fetchUnreadEmails(gmail, since) {
-  // Build query for school-related emails (Brightspace, Gradescope, Ed Discussion)
-  const query = `is:unread after:${since} from:(brightspace OR gradescope.com OR edstem.org)`;
+  // Build query for school-related emails (Brightspace, Gradescope, Ed Discussion, SI)
+  const query = `is:unread after:${since} from:(brightspace OR gradescope.com OR edstem.org OR suryadi@usc.edu)`;
 
   try {
     const res = await gmail.users.messages.list({
@@ -151,7 +157,7 @@ function extractBody(message) {
 }
 
 /**
- * Determine the source of an email (brightspace, gradescope, ed)
+ * Determine the source of an email (brightspace, gradescope, ed, si)
  * @param {string} from - From header value
  * @returns {string|null} Source identifier or null
  */
@@ -159,6 +165,7 @@ function identifySource(from) {
   if (EMAIL_PATTERNS.brightspace.from.test(from)) return 'brightspace';
   if (EMAIL_PATTERNS.gradescope.from.test(from)) return 'gradescope';
   if (EMAIL_PATTERNS.ed.from.test(from)) return 'ed';
+  if (EMAIL_PATTERNS.si.from.test(from)) return 'si';
   return null;
 }
 
@@ -341,6 +348,45 @@ function parseEdEmail(subject, body, dateStr) {
 }
 
 /**
+ * Parse Supplemental Instruction (SI) email content
+ * From: suryadi@usc.edu (MATH-226 SI)
+ * @param {string} subject - Email subject
+ * @param {string} body - Email body
+ * @param {string} dateStr - Email date string
+ * @returns {object} Parsed announcement item
+ */
+function parseSIEmail(subject, body, dateStr) {
+  const result = {
+    source: 'si',
+    type: 'announcement',
+    course: EMAIL_PATTERNS.si.course,  // MATH-226
+    title: `[SI] ${subject}`,
+    content: body.substring(0, 500),
+    date: dateStr,
+    url: null
+  };
+
+  // Try to extract any URLs from body
+  const urlMatch = body.match(/https?:\/\/[^\s<>"]+/i);
+  if (urlMatch) {
+    result.url = urlMatch[0];
+  }
+
+  // Check if there's a date/time mentioned for SI session
+  const dateMatch = body.match(/(\w+day,?\s+\w+\s+\d{1,2}|\d{1,2}\/\d{1,2})/i);
+  const timeMatch = body.match(/(\d{1,2}:\d{2}\s*(?:am|pm)?(?:\s*-\s*\d{1,2}:\d{2}\s*(?:am|pm)?)?)/i);
+
+  if (dateMatch || timeMatch) {
+    const sessionInfo = [dateMatch?.[0], timeMatch?.[0]].filter(Boolean).join(' at ');
+    if (sessionInfo) {
+      result.content = `SI Session: ${sessionInfo}\n\n${result.content}`;
+    }
+  }
+
+  return result;
+}
+
+/**
  * Parse an email and extract relevant information
  * @param {object} gmail - Gmail API client
  * @param {string} messageId - Gmail message ID
@@ -361,6 +407,8 @@ async function parseEmail(gmail, messageId) {
       return parseGradescopeEmail(headers.subject, body, headers.date);
     case 'ed':
       return parseEdEmail(headers.subject, body, headers.date);
+    case 'si':
+      return parseSIEmail(headers.subject, body, headers.date);
     default:
       return null;
   }
@@ -394,5 +442,6 @@ module.exports = {
   identifySource,
   parseBrightspaceEmail,
   parseGradescopeEmail,
-  parseEdEmail
+  parseEdEmail,
+  parseSIEmail
 };
