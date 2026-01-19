@@ -1,6 +1,5 @@
 import { parseISO, isPast, isToday, differenceInDays } from 'date-fns';
 import { useCompletedTasks, getTaskId } from '../hooks/useCompletedTasks';
-import { normalizeCourse } from '../lib/dateUtils';
 
 /**
  * Calculate summary stats from briefing data
@@ -23,7 +22,7 @@ function calculateStats(assignments, actionItems, gradescope, isCompleted) {
 
   // Process assignments
   assignments.forEach(a => {
-    const course = normalizeCourse(a.course);
+    const course = a.course || 'Unknown';
     if (!stats.byCourse[course]) {
       stats.byCourse[course] = { assignments: 0, overdue: 0, dueToday: 0, dueSoon: 0, submitted: 0, actionItems: 0, completedActions: 0, graded: [] };
     }
@@ -51,7 +50,7 @@ function calculateStats(assignments, actionItems, gradescope, isCompleted) {
 
   // Process action items - check if they're completed
   actionItems.forEach(item => {
-    const course = normalizeCourse(item.course);
+    const course = item.course || 'Unknown';
     if (!stats.byCourse[course]) {
       stats.byCourse[course] = { assignments: 0, overdue: 0, dueToday: 0, dueSoon: 0, submitted: 0, actionItems: 0, completedActions: 0, graded: [] };
     }
@@ -85,7 +84,7 @@ function calculateStats(assignments, actionItems, gradescope, isCompleted) {
 
   // Process gradescope for recent grades
   gradescope.forEach(g => {
-    const course = normalizeCourse(g.course);
+    const course = g.course || 'Unknown';
     if (!stats.byCourse[course]) {
       stats.byCourse[course] = { assignments: 0, overdue: 0, dueToday: 0, dueSoon: 0, submitted: 0, actionItems: 0, completedActions: 0, graded: [] };
     }

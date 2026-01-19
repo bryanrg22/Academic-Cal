@@ -4,7 +4,13 @@ export function UrgentBanner({ assignments = [], actionItems = [] }) {
   // Helper to normalize title for comparison
   const normalizeForCompare = (str) => {
     if (!str) return '';
-    return str.toLowerCase().replace(/\s+/g, '').replace(/^(hw|homework|lab|quiz|ps)/i, m => m.toLowerCase());
+    let normalized = str.toLowerCase().replace(/\s+/g, '');
+    // Remove verb prefixes first
+    normalized = normalized.replace(/^(complete|submit|finish|turnin|upload|handin|do|start|workon)/, '');
+    // Normalize assignment type prefixes
+    normalized = normalized.replace(/^(homework)(\d+)/, 'hw$2');
+    normalized = normalized.replace(/^(problemset)(\d+)/, 'ps$2');
+    return normalized;
   };
 
   // Find overdue and due-today items (with deduplication)

@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { format, parseISO } from 'date-fns';
-import { normalizeCourse } from '../lib/dateUtils';
 
 function AnnouncementItem({ announcement }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -99,9 +98,9 @@ function CourseSection({ course, announcements }) {
 }
 
 export function AnnouncementList({ announcements = [] }) {
-  // Group announcements by normalized course name
+  // Group announcements by course name
   const grouped = announcements.reduce((acc, announcement) => {
-    const course = normalizeCourse(announcement.course) || 'General';
+    const course = announcement.course || 'General';
     if (!acc[course]) acc[course] = [];
     acc[course].push(announcement);
     return acc;

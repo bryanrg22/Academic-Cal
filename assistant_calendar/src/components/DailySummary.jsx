@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { normalizeCourse } from '../lib/dateUtils';
 
 export function DailySummary({ summary }) {
   const [isExpanded, setIsExpanded] = useState(true);
@@ -71,7 +70,7 @@ export function DailySummary({ summary }) {
                     >
                       <div className="flex items-center gap-2 mb-1.5">
                         <span className="px-2 py-0.5 text-xs font-medium rounded bg-slate-700 text-slate-300">
-                          {normalizeCourse(course)}
+                          {course}
                         </span>
                       </div>
                       <p className="text-sm text-slate-400 leading-relaxed">
