@@ -335,7 +335,7 @@ Provide the briefing in chat with:
 ## Date Format
 Always use YYYY-MM-DD format for all dates.
 
-Use today's date for the "date" field.
+Use today's date for the "date" field. I am currently in Los Angeles, California.
 ```
 
 ---
