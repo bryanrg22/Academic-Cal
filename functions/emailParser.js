@@ -3,7 +3,7 @@
  * Connects to Gmail API and parses emails from Canvas, Gradescope, and Ed Discussion
  */
 
-const { google } = require('googleapis');
+const { OAuth2Client } = require('google-auth-library');
 
 // Email sender patterns to match
 const EMAIL_PATTERNS = {
@@ -37,38 +37,57 @@ const EMAIL_PATTERNS = {
   }
 };
 
+const GMAIL_API_BASE = 'https://gmail.googleapis.com/gmail/v1';
+
 /**
  * Create an authenticated Gmail client using refresh token
  * @param {string} clientId - OAuth client ID
  * @param {string} clientSecret - OAuth client secret
  * @param {string} refreshToken - OAuth refresh token
- * @returns {object} Gmail API client
+ * @returns {object} Gmail API client wrapper with access token
  */
 async function getGmailClient(clientId, clientSecret, refreshToken) {
-  const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
+  const oauth2Client = new OAuth2Client(clientId, clientSecret);
   oauth2Client.setCredentials({ refresh_token: refreshToken });
 
-  return google.gmail({ version: 'v1', auth: oauth2Client });
+  // Get fresh access token
+  const { credentials } = await oauth2Client.refreshAccessToken();
+
+  return {
+    accessToken: credentials.access_token,
+    async fetch(endpoint, options = {}) {
+      const url = `${GMAIL_API_BASE}${endpoint}`;
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+          'Content-Type': 'application/json',
+          ...options.headers
+        }
+      });
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Gmail API error: ${response.status} ${error}`);
+      }
+      return response.json();
+    }
+  };
 }
 
 /**
- * Fetch unread emails from specified sources since a given timestamp
- * @param {object} gmail - Gmail API client
+ * Fetch emails from specified sources since a given timestamp
+ * @param {object} gmail - Gmail API client wrapper
  * @param {number} since - Unix timestamp (seconds) to search from
  * @returns {array} Array of message objects with id and threadId
  */
-async function fetchUnreadEmails(gmail, since) {
+async function fetchSchoolEmails(gmail, since) {
   // Build query for school-related emails (Brightspace, Gradescope, Ed Discussion, SI)
-  const query = `is:unread after:${since} from:(brightspace OR gradescope.com OR edstem.org OR suryadi@usc.edu)`;
+  // Note: No is:unread filter - we track processed emails in Firestore instead
+  const query = `after:${since} from:(brightspace OR gradescope.com OR edstem.org OR suryadi@usc.edu)`;
 
   try {
-    const res = await gmail.users.messages.list({
-      userId: 'me',
-      q: query,
-      maxResults: 50
-    });
-
-    return res.data.messages || [];
+    const res = await gmail.fetch(`/users/me/messages?q=${encodeURIComponent(query)}&maxResults=50`);
+    return res.messages || [];
   } catch (error) {
     console.error('Error fetching emails:', error.message);
     throw error;
@@ -77,19 +96,13 @@ async function fetchUnreadEmails(gmail, since) {
 
 /**
  * Get full email content by message ID
- * @param {object} gmail - Gmail API client
+ * @param {object} gmail - Gmail API client wrapper
  * @param {string} messageId - Gmail message ID
  * @returns {object} Full message data
  */
 async function getEmailContent(gmail, messageId) {
   try {
-    const res = await gmail.users.messages.get({
-      userId: 'me',
-      id: messageId,
-      format: 'full'
-    });
-
-    return res.data;
+    return await gmail.fetch(`/users/me/messages/${messageId}?format=full`);
   } catch (error) {
     console.error(`Error fetching email ${messageId}:`, error.message);
     throw error;
@@ -416,17 +429,16 @@ async function parseEmail(gmail, messageId) {
 
 /**
  * Mark an email as read
- * @param {object} gmail - Gmail API client
+ * @param {object} gmail - Gmail API client wrapper
  * @param {string} messageId - Gmail message ID
  */
 async function markEmailAsRead(gmail, messageId) {
   try {
-    await gmail.users.messages.modify({
-      userId: 'me',
-      id: messageId,
-      requestBody: {
+    await gmail.fetch(`/users/me/messages/${messageId}/modify`, {
+      method: 'POST',
+      body: JSON.stringify({
         removeLabelIds: ['UNREAD']
-      }
+      })
     });
   } catch (error) {
     console.error(`Error marking email ${messageId} as read:`, error.message);
@@ -435,7 +447,7 @@ async function markEmailAsRead(gmail, messageId) {
 
 module.exports = {
   getGmailClient,
-  fetchUnreadEmails,
+  fetchSchoolEmails,
   getEmailContent,
   parseEmail,
   markEmailAsRead,

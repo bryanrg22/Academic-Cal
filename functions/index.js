@@ -4,7 +4,7 @@ const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const {
   getGmailClient,
-  fetchUnreadEmails,
+  fetchSchoolEmails,
   parseEmail,
   markEmailAsRead
 } = require("./emailParser");
@@ -399,9 +399,18 @@ exports.checkEmails = onSchedule(
 
       console.log(`Checking emails since ${new Date(lastCheck * 1000).toISOString()}`);
 
-      // Fetch unread emails
-      const emails = await fetchUnreadEmails(gmail, lastCheck);
-      console.log(`Found ${emails.length} unread school emails`);
+      // Fetch school emails (both read and unread)
+      const allEmails = await fetchSchoolEmails(gmail, lastCheck);
+      console.log(`Found ${allEmails.length} school emails since last check`);
+
+      // Get list of already processed email IDs
+      const processedDoc = await db.collection("meta").doc("processedEmails").get();
+      const processedIds = processedDoc.exists ? (processedDoc.data().ids || []) : [];
+      const processedSet = new Set(processedIds);
+
+      // Filter out already processed emails
+      const emails = allEmails.filter(email => !processedSet.has(email.id));
+      console.log(`${emails.length} new emails to process (${allEmails.length - emails.length} already processed)`);
 
       if (emails.length === 0) {
         // Update last check timestamp even if no emails
@@ -537,6 +546,14 @@ exports.checkEmails = onSchedule(
         await db.collection("briefings").doc(today).set(document);
         console.log(`Updated briefing for ${today} with ${emails.length} email items (${gmailNewItemKeys.length} new)`);
       }
+
+      // Save processed email IDs (keep last 500 to avoid unbounded growth)
+      const newProcessedIds = emails.map(e => e.id);
+      const allProcessedIds = [...processedIds, ...newProcessedIds].slice(-500);
+      await db.collection("meta").doc("processedEmails").set({
+        ids: allProcessedIds,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
 
       // Update last check timestamp
       await db.collection("meta").doc("emailSync").set({
