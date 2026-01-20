@@ -12,6 +12,14 @@ const {
 admin.initializeApp();
 const db = admin.firestore();
 
+/**
+ * Get current date in Pacific Time (Los Angeles)
+ * @returns {string} Date in YYYY-MM-DD format
+ */
+function getTodayPacific() {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+}
+
 // Define secrets
 const BRIEFING_API_KEY = defineSecret("BRIEFING_API_KEY");
 const GMAIL_CLIENT_ID = defineSecret("GMAIL_CLIENT_ID");
@@ -376,7 +384,9 @@ exports.checkEmails = onSchedule(
     retryCount: 1
   },
   async (context) => {
-    console.log("Starting email check...");
+    // DISABLED: Gmail integration disabled to prevent issues
+    console.log("Gmail integration is currently disabled.");
+    return;
 
     // Check if Gmail secrets are configured
     const clientId = GMAIL_CLIENT_ID.value();
@@ -422,7 +432,7 @@ exports.checkEmails = onSchedule(
       }
 
       // Parse each email and update briefings
-      const today = new Date().toISOString().split("T")[0];
+      const today = getTodayPacific();
       const parsedItems = {
         actionItems: [],
         assignments: [],
